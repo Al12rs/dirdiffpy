@@ -1,0 +1,2018 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.7.5" />
+<title>dirstate API documentation</title>
+<meta name="description" content="" />
+<link href='https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.min.css' rel='stylesheet'>
+<link href='https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/8.0.0/sanitize.min.css' rel='stylesheet'>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" rel="stylesheet">
+<style>.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{font-weight:bold}#index h4 + ul{margin-bottom:.6em}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>dirstate</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">import os
+import json
+import logging
+import subprocess
+from globster import Globster
+
+log = logging.getLogger(&#34;dirstate&#34;)
+
+
+class Dir(object):
+    &#34;&#34;&#34;
+    Wrapper for dirstate for a path.
+
+    Allow exclusions of files,
+    listing of contents,
+    cashing of iteration,
+    size,
+    walking,
+    hashing of files and entire folder,
+    compressing.
+
+    Args:
+        directory (str): Path of the dir to wrap.
+        exclude_file (str): Path to file containing exclusion pattern,
+            None by default, you can also load .gitignore files.
+        excludes (list): List of additional patterns for exclusion,
+            by default: [&#39;.git/&#39;, &#39;.hg/&#39;, &#39;.svn/&#39;]
+    &#34;&#34;&#34;
+
+    def __init__(self, directory=&#34;.&#34;, exclude_file=None,
+                 excludes=[&#39;.git/&#39;, &#39;.hg/&#39;, &#39;.svn/&#39;]):
+
+        if not os.path.isdir(directory):
+            raise TypeError(&#34;Directory must be a directory.&#34;)
+        self.directory = os.path.basename(directory)
+        self.path = os.path.abspath(directory)
+        self.parent = os.path.dirname(self.path)
+        self.patterns = excludes
+        self._files_cache = []
+        self._sub_dirs_cache = []
+        self._is_populated = False
+
+        if exclude_file:
+            self.exclude_file = os.path.join(self.path, exclude_file)
+            if os.path.isfile(self.exclude_file):
+                file_patt = filter(None,
+                                   open(exclude_file)
+                                   .read().split(&#34;\n&#34;))
+                self.patterns.extend(file_patt)
+
+        self.globster = Globster(self.patterns)
+
+    def is_excluded(self, path):
+        &#34;&#34;&#34; 
+        Return whether &#39;path&#39; is ignored based on exclude patterns
+        &#34;&#34;&#34;
+        match = self.globster.match(self.relpath(path))
+        if match:
+            log.debug(&#34;{0} matched {1} for exclusion&#34;.format(path, match))
+            return True
+        return False
+
+    def walk(self):
+        &#34;&#34;&#34;
+        Walk the directory like os.path
+        (yields a 3-tuple (dirpath, dirnames, filenames)
+        except it exclude all files/directories on the fly. 
+        &#34;&#34;&#34;
+        for root, dirs, files in os.walk(self.path, topdown=True):
+            # TODO relative walk, recursive call if root excluder found???
+            #root_excluder = get_root_excluder(root)
+            ndirs = []
+            # First we exclude directories
+            for d in list(dirs):
+                if self.is_excluded(os.path.join(root, d)):
+                    dirs.remove(d)
+                elif not os.path.islink(os.path.join(root, d)):
+                    ndirs.append(d)
+
+            nfiles = []
+            for fpath in (os.path.join(root, f) for f in files):
+                if not self.is_excluded(fpath) and not os.path.islink(fpath):
+                    nfiles.append(os.path.relpath(fpath, root))
+
+            yield root, ndirs, nfiles
+
+    def populate_dir(self, force_refresh=False):
+        &#34;&#34;&#34;
+        Walk the directory recursively and populate a cache of it&#39;s contents.
+
+        Dir.patterns are used for exclusion.
+        Paths are stored as relative to the Dir.path
+
+        Args:
+            force_refresh (bool): Whether to refresh from disk if cache
+                                  is already populated.
+        &#34;&#34;&#34;
+        if not force_refresh and self._is_populated:
+            return
+
+        self._files_cache.clear()
+        self._sub_dirs_cache.clear()
+
+        for root, dirs, files in self.walk():
+            for f in files:
+                relpath = self.relpath(os.path.join(root, f))
+                self._files_cache.append(relpath)
+            for d in dirs:
+                relpath = self.relpath(os.path.join(root, d))
+                self._sub_dirs_cache.append(relpath)
+
+        self._is_populated = True
+
+    def depopulate(self):
+        &#34;&#34;&#34;
+        Clear the cached lists of files and folders, set depopulated state.
+        &#34;&#34;&#34;
+        self._files_cache.clear()
+        self._sub_dirs_cache.clear()
+        self._is_populated = False
+
+    def iterfiles(self, include_pattern=None, abspath=False, force_refresh=False):
+        &#34;&#34;&#34; 
+        Generator for all the files matching pattern and not already excluded.
+
+        Uses cached file list if available.
+
+        Args:
+            pattern (str): Unix style (glob like/gitignore like) pattern
+            abspath (bool): Whether to use absolute or relative (default) paths. 
+            force_refresh (bool): Whether to refresh from disk or use the cache.
+        &#34;&#34;&#34;
+        self.populate_dir(force_refresh)
+
+        if include_pattern is not None:
+            globster = Globster([include_pattern])
+
+        for f in self._files_cache:
+            if include_pattern is None or globster.match(f):
+                if abspath:
+                    yield os.path.join(self.path, f)
+                else:
+                    yield f
+
+    def itersubdirs(self, pattern=None, abspath=False, force_refresh=False):
+        &#34;&#34;&#34;
+        Generator for all subdirs matching pattern and not excluded.
+
+        Uses cached dir list if available.
+
+        Args:
+            pattern (str): Unix style (glob like/gitignore like) pattern
+            abspath (bool): whether to use absolute or relative (default) paths.
+            force_refresh (bool): Whether to refresh from disk or use the cache.
+        &#34;&#34;&#34;
+        self.populate_dir(force_refresh)
+
+        if pattern is not None:
+            globster = Globster([pattern])
+
+        for d in self._sub_dirs_cache:
+            if pattern is None or globster.match(d):
+                if abspath:
+                    yield os.path.join(self.directory, d)
+                else:
+                    yield d
+
+    def files(self, pattern=None,
+              sort_key=lambda k: k,
+              sort_reverse=False,
+              abspath=False,
+              force_refresh=False):
+        &#34;&#34;&#34;
+        Return a sorted list containing relative path of all files (recursively).
+
+        Uses cached file list if available.
+
+        Args:
+            pattern (str): Unix style (glob like/gitignore like) pattern.
+            sort_key (lambda): key argument for sorted
+            sort_reverse (bool): reverse argument for sorted
+            abspath (bool): whether to use absolute or relative (default) paths.
+            force_refresh (bool): Whether to refresh from disk or use the cache.
+
+        Return:
+            List of all relative file paths.
+        &#34;&#34;&#34;
+        return sorted(self.iterfiles(pattern, abspath, force_refresh),
+                      key=sort_key,
+                      reverse=sort_reverse)
+
+    def subdirs(self, pattern=None, sort_key=lambda k: k,
+                sort_reverse=False, abspath=False,
+                force_refresh=False):
+        &#34;&#34;&#34;
+        Return a sorted list containing relative path of all subdirs(recursively).
+
+        Uses cached file list if available.
+
+        Args:
+            pattern (str): Unix style (glob like/gitignore like) pattern.
+            sort_key (lambda): key argument for sorted
+            sort_reverse (bool): reverse argument for sorted
+            abspath (bool): whether to use absolute or relative (default) paths.
+            force_refresh (bool): Whether to refresh from disk or use the cache.
+
+        Return:
+            List of all relative subdirs paths.
+        &#34;&#34;&#34;
+        return sorted(self.itersubdirs(pattern, abspath, force_refresh),
+                      key=sort_key,
+                      reverse=sort_reverse)
+
+    def relpath(self, path):
+        &#34;&#34;&#34; 
+        Return a relative filepath to path from Dir path.
+        &#34;&#34;&#34;
+        return os.path.relpath(path, start=self.path)
+
+    def abspath(self, relpath):
+        &#34;&#34;&#34;
+        Return an absolute filepath from a relative to the root dir one.
+        &#34;&#34;&#34;
+        return os.path.join(self.dir.path, relpath)
+
+    def size(self):
+        &#34;&#34;&#34; 
+        Return total directory size in bytes.
+
+        Return:
+            int: Total directory size in bytes.
+        &#34;&#34;&#34;
+        dir_size = 0
+        for f in self.iterfiles(abspath=True):
+            dir_size += os.path.getsize(f)
+        return dir_size
+
+    def compress_to(self, archive_path=None):
+        &#34;&#34;&#34; Compress the directory with gzip using tarlib.
+
+        :type archive_path: str
+        :param archive_path: Path to the archive, if None, a tempfile is created
+
+        &#34;&#34;&#34;
+        if archive_path is None:
+            archive = tempfile.NamedTemporaryFile(delete=False)
+            tar_args = []
+            tar_kwargs = {&#39;fileobj&#39;: archive}
+            _return = archive.name
+        else:
+            tar_args = [archive_path]
+            tar_kwargs = {}
+            _return = archive_path
+        tar_kwargs.update({&#39;mode&#39;: &#39;w:gz&#39;})
+        with closing(tarfile.open(*tar_args, **tar_kwargs)) as tar:
+            tar.add(self.path, arcname=&#39;&#39;, exclude=self.is_excluded)
+
+        return _return
+
+
+class DirSnapshot(object):
+    &#34;&#34;&#34;
+    Hold a snapshot of a directory, to be used for comparison.
+    &#34;&#34;&#34;
+
+    def __init__(self, dir=None, state=None,
+                 file_idx_methods={},
+                 dir_idx_methods={}):
+        &#34;&#34;&#34;
+        Args:
+            dir (Dir): Wrapper object for the target directory.
+            state (dict): 
+            file_idx_methods (dict): name / function pairs of indexing 
+                operations to apply to the files in the folder.
+                Eg: {&#34;getmtime&#34;:os.path.getmtime, &#34;sha256&#34;:filehash}
+            dir_idx_methods (dict): name / function pairs of indexing 
+                operations to apply to the subdirectories in the folder.
+        &#34;&#34;&#34;
+        self.dir = dir
+        self.file_idx_methods = file_idx_methods
+        self.dir_idx_methods = dir_idx_methods
+        self.state = state or self.compute_state()
+
+    def set_file_idx_methods(self, file_idx_methods={}):
+        &#34;&#34;&#34;
+        Set the indexing funcions to apply on the files to obtain 
+        data to store for comparison.
+
+        Args:
+            file_idx_methods (dict): name / function pairs of indexing 
+                operations to apply to the files in the folder.
+        &#34;&#34;&#34;
+        self.file_idx_methods = file_idx_methods
+
+    def set_dir_idx_methods(self, dir_idx_methods={}):
+        &#34;&#34;&#34;
+        Set the indexing funcions to apply on the subdirectories to obtain 
+        data to store for comparison.
+
+        Args:
+            dir_idx_methods (dict): name / function pairs of indexing 
+                operations to apply to the subdirs in the folder.
+        &#34;&#34;&#34;
+        self.set_dir_idx_methods = dir_idx_methods
+
+    def compute_state(self):
+        &#34;&#34;&#34;
+        Calculate the snapshot of the folder.
+
+        Returns:
+            state: dictionary with the computed state.
+
+        Example of state strcuture:
+        &#34;state&#34;: {
+            &#34;root&#34;:{
+                &#34;root/path&#34;:{
+                    &#34;idx_method_name&#34;:&#34;timeStamp&#34;,
+                    &#34;idx_method_name2&#34;:&#34;size&#34;
+                }
+            }
+            &#34;subdirs&#34;:{
+                &#34;dir/path1&#34;:{
+                    &#34;idx_method_name&#34;:&#34;timeStamp&#34;,
+                    &#34;idx_method_name2&#34;:&#34;size&#34;
+                },
+                &#34;dir/path2&#34;:{
+                    &#34;idx_method_name&#34;:&#34;timeStamp&#34;,
+                    &#34;idx_method_name2&#34;:&#34;size&#34;
+                }
+            }
+            &#34;files&#34;:{
+                &#34;file/path&#34;:{
+                    &#34;idx_method_name&#34;:&#34;hash&#34;,
+                    &#34;idx_method_name2&#34;:&#34;hash2&#34;
+                },
+                &#34;file2/path2&#34;:{
+                    &#34;idx_method_name&#34;:&#34;hash&#34;,
+                    &#34;idx_method_name2&#34;:&#34;hash2&#34;
+                }
+            }
+        }
+        &#34;&#34;&#34;
+        dir.populate(force_refresh=True)
+        state = {}
+        state[&#39;root&#39;] = subdir_data(self.dir.relpath(self.dir.path))
+        state[&#39;subdirs&#39;] = index_subdirs()
+        state[&#39;files&#39;] = index_files()
+        dir.depopulate()
+        return state
+
+    def index_files(self):
+        &#34;&#34;&#34;
+        Generate the files indexes using the idx_methods.
+
+        Returns:
+            files_index (dict): dictionary of relative file paths and 
+                associated data: 
+                    Eg. relpath : {methodName : data, methodName : data}
+        &#34;&#34;&#34;
+        files_index = {}
+        for f in self.dir.iterfiles():
+            files_index[f] = self.index_file(f)
+        return files_index
+
+    def index_subdirs(self):
+        &#34;&#34;&#34;
+        Generate the directory indexes using the idx_methods.
+
+        Returns:
+            dirs_index (dict): dictionary of relative dir paths and 
+                associated data: 
+                    Eg. relpath : {methodName : data, methodName : data}
+        &#34;&#34;&#34;
+        dirs_index = {}
+        for d in self.dir.itersubdirs():
+            dirs_index[d] = self.subdir_data(d)
+        return dirs_index
+
+    def file_data(self, f_path):
+        &#34;&#34;&#34;
+        Compute data for a file using idx_methods.
+
+        Args:
+            f_path (str): relative path of the file.
+
+        Returns:
+            file_data (dict): dictionary of methodNames / generatedData
+        &#34;&#34;&#34;
+        file_data = {}
+        for method_key in self.file_idx_methods:
+            idx_method = self.file_idx_methods[method_key]
+            try:
+                file_data[method_key] = self.idx_method(self.dir
+                                                        .abspath(f_path))
+            except Exception as exc:
+                print(f_path, exc)
+        return file_data
+
+    def subdir_data(self, d_path):
+        &#34;&#34;&#34;
+        Compute data for a subdirectory using idx_methods.
+
+        Args:
+            d_path (str): relative path of the subdir.
+
+        Returns:
+            dir_data (dict): dictionary of methodNames / generatedData
+        &#34;&#34;&#34;
+        dir_data = {}
+        for method_key in self.dir_idx_methods:
+            idx_method = self.dir_idx_methods[method_key]
+            try:
+                file_dir_datadata[method_key] = (
+                    self.idx_method(self.dir.abspath(d_path)))
+            except Exception as exc:
+                print(d_path, exc)
+        return dir_data
+
+    def __sub__(self, other):
+        &#34;&#34;&#34; 
+        Compute diff with minus &#34;-&#34; operator overloading.
+
+        Most commonly used for 
+            recent_snapshot - older_snapshot.
+
+        Returns: 
+            dict with the following keys:
+                - deleted files `deleted&#39;
+                - created files `created&#39;
+                - modified files `modified&#39;
+                - deleted directories `deleted_dirs&#39;
+
+        &gt;&gt;&gt; snapshot_A = DirSnapshot(Dir(&#39;/path_A&#39;))
+        &gt;&gt;&gt; snapshot_B = DirState(Dir(&#39;/path_B&#39;))
+        &gt;&gt;&gt; diff =  snapshot_B - snapshot_A
+        &gt;&gt;&gt; # Equals to
+        &gt;&gt;&gt; diff = compute_diff(snapshot_B.state, snapshot_A.state)
+        &#34;&#34;&#34;
+        return DirSnapshot.compute_diff(self.state, other.state)
+
+    @classmethod
+    def compute_diff(cls, dir_state_new, dir_state_old,
+                     cmp_key=None):
+        &#34;&#34;&#34; 
+        Compare `dir_state_new&#39; and `dir_state_old&#39; and return the diff.
+
+        Args:
+            dir_state_new (DirSnapshot.state)
+            dir_state_old (DirSnapshot.state)
+            cmp_key (str): name of the file index data 
+                to use for the comparison. If missing all common 
+                metadata will be used. If no common metadata is 
+                found modified will be empty.
+
+        Returns: 
+            dict with the following keys:
+                - deleted files `deleted&#39;
+                - created files `created&#39;
+                - modified files `modified&#39;
+                - unknown modified state &#39;modified_unknown&#39;
+                - deleted directories `deleted_dirs&#39;
+        &#34;&#34;&#34;
+        old_files = dir_state_old[&#39;files&#39;].keys()
+        new_files = dir_state_new[&#39;files&#39;].keys()
+        old_dirs = dir_state_old[&#39;subdirs&#39;].keys()
+        new_dirs = dir_state_new[&#39;subdirs&#39;].keys()
+
+        data = {}
+        data[&#39;deleted&#39;] = list(old_files - new_files)
+        data[&#39;created&#39;] = list(new_files - old_files)
+        data[&#39;modified&#39;] = []
+        data[&#39;modified_unknown&#39;] = []
+        data[&#39;deleted_dirs&#39;] = list(old_dirs - new_dirs)
+
+        for f in old_files.intersection(new_files):
+            cmp_res = DirSnapshot.compare_entry(new_files[f],
+                                                old_files[f],
+                                                cmp_key)
+            if cmp_res == 1:
+                data[&#39;modified&#39;].append(f)
+            if cmp_res == 0:
+                pass
+            if cmp_res == -1:
+                data[&#39;modified_unknown&#39;].append(f)
+        return data
+
+    @classmethod
+    def compare_entry(cls, new_data, old_data, cmp_key=None):
+        &#34;&#34;&#34;
+        Check modified status of an entry using common data keys 
+        or cmp_key if set.
+
+        Args:
+            new_data (dict): new data organized in key / value
+            old_data (dict): old data organized in key / value
+            cmp_key (str): key of the value to use for the comparison,
+                if None, all the common keys will be used instead.
+
+        Returns:
+            (int) with the following values:
+                 1: modified
+                 0: not modified
+                -1: unknown 
+        &#34;&#34;&#34;
+        if cmp_key:
+            if (new_data.has_key(cmp_key)
+                    and old_data.has_key(cmp_key)):
+                if new_data[cmp_key] != old_data[cmp_key]:
+                    # modified
+                    return 1
+                else:
+                    # unknown
+                    return -1
+        else:
+            methods = old_data.keys().intersection(new_data.keys())
+            if methods.len() == 0:
+                # unknown
+                return -1
+            else:
+                for key in methods:
+                    if new_data[key] != old_data[key]:
+                        # modified
+                        return 1
+        # not modified
+        return 0</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="dirstate.Dir"><code class="flex name class">
+<span>class <span class="ident">Dir</span></span>
+<span>(</span><span>directory='.', exclude_file=None, excludes=['.git/', '.hg/', '.svn/'])</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Wrapper for dirstate for a path.</p>
+<p>Allow exclusions of files,
+listing of contents,
+cashing of iteration,
+size,
+walking,
+hashing of files and entire folder,
+compressing.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>directory</code></strong> :&ensp;<code>str</code></dt>
+<dd>Path of the dir to wrap.</dd>
+<dt><strong><code>exclude_file</code></strong> :&ensp;<code>str</code></dt>
+<dd>Path to file containing exclusion pattern,
+None by default, you can also load .gitignore files.</dd>
+<dt><strong><code>excludes</code></strong> :&ensp;<code>list</code></dt>
+<dd>List of additional patterns for exclusion,
+by default: ['.git/', '.hg/', '.svn/']</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Dir(object):
+    &#34;&#34;&#34;
+    Wrapper for dirstate for a path.
+
+    Allow exclusions of files,
+    listing of contents,
+    cashing of iteration,
+    size,
+    walking,
+    hashing of files and entire folder,
+    compressing.
+
+    Args:
+        directory (str): Path of the dir to wrap.
+        exclude_file (str): Path to file containing exclusion pattern,
+            None by default, you can also load .gitignore files.
+        excludes (list): List of additional patterns for exclusion,
+            by default: [&#39;.git/&#39;, &#39;.hg/&#39;, &#39;.svn/&#39;]
+    &#34;&#34;&#34;
+
+    def __init__(self, directory=&#34;.&#34;, exclude_file=None,
+                 excludes=[&#39;.git/&#39;, &#39;.hg/&#39;, &#39;.svn/&#39;]):
+
+        if not os.path.isdir(directory):
+            raise TypeError(&#34;Directory must be a directory.&#34;)
+        self.directory = os.path.basename(directory)
+        self.path = os.path.abspath(directory)
+        self.parent = os.path.dirname(self.path)
+        self.patterns = excludes
+        self._files_cache = []
+        self._sub_dirs_cache = []
+        self._is_populated = False
+
+        if exclude_file:
+            self.exclude_file = os.path.join(self.path, exclude_file)
+            if os.path.isfile(self.exclude_file):
+                file_patt = filter(None,
+                                   open(exclude_file)
+                                   .read().split(&#34;\n&#34;))
+                self.patterns.extend(file_patt)
+
+        self.globster = Globster(self.patterns)
+
+    def is_excluded(self, path):
+        &#34;&#34;&#34; 
+        Return whether &#39;path&#39; is ignored based on exclude patterns
+        &#34;&#34;&#34;
+        match = self.globster.match(self.relpath(path))
+        if match:
+            log.debug(&#34;{0} matched {1} for exclusion&#34;.format(path, match))
+            return True
+        return False
+
+    def walk(self):
+        &#34;&#34;&#34;
+        Walk the directory like os.path
+        (yields a 3-tuple (dirpath, dirnames, filenames)
+        except it exclude all files/directories on the fly. 
+        &#34;&#34;&#34;
+        for root, dirs, files in os.walk(self.path, topdown=True):
+            # TODO relative walk, recursive call if root excluder found???
+            #root_excluder = get_root_excluder(root)
+            ndirs = []
+            # First we exclude directories
+            for d in list(dirs):
+                if self.is_excluded(os.path.join(root, d)):
+                    dirs.remove(d)
+                elif not os.path.islink(os.path.join(root, d)):
+                    ndirs.append(d)
+
+            nfiles = []
+            for fpath in (os.path.join(root, f) for f in files):
+                if not self.is_excluded(fpath) and not os.path.islink(fpath):
+                    nfiles.append(os.path.relpath(fpath, root))
+
+            yield root, ndirs, nfiles
+
+    def populate_dir(self, force_refresh=False):
+        &#34;&#34;&#34;
+        Walk the directory recursively and populate a cache of it&#39;s contents.
+
+        Dir.patterns are used for exclusion.
+        Paths are stored as relative to the Dir.path
+
+        Args:
+            force_refresh (bool): Whether to refresh from disk if cache
+                                  is already populated.
+        &#34;&#34;&#34;
+        if not force_refresh and self._is_populated:
+            return
+
+        self._files_cache.clear()
+        self._sub_dirs_cache.clear()
+
+        for root, dirs, files in self.walk():
+            for f in files:
+                relpath = self.relpath(os.path.join(root, f))
+                self._files_cache.append(relpath)
+            for d in dirs:
+                relpath = self.relpath(os.path.join(root, d))
+                self._sub_dirs_cache.append(relpath)
+
+        self._is_populated = True
+
+    def depopulate(self):
+        &#34;&#34;&#34;
+        Clear the cached lists of files and folders, set depopulated state.
+        &#34;&#34;&#34;
+        self._files_cache.clear()
+        self._sub_dirs_cache.clear()
+        self._is_populated = False
+
+    def iterfiles(self, include_pattern=None, abspath=False, force_refresh=False):
+        &#34;&#34;&#34; 
+        Generator for all the files matching pattern and not already excluded.
+
+        Uses cached file list if available.
+
+        Args:
+            pattern (str): Unix style (glob like/gitignore like) pattern
+            abspath (bool): Whether to use absolute or relative (default) paths. 
+            force_refresh (bool): Whether to refresh from disk or use the cache.
+        &#34;&#34;&#34;
+        self.populate_dir(force_refresh)
+
+        if include_pattern is not None:
+            globster = Globster([include_pattern])
+
+        for f in self._files_cache:
+            if include_pattern is None or globster.match(f):
+                if abspath:
+                    yield os.path.join(self.path, f)
+                else:
+                    yield f
+
+    def itersubdirs(self, pattern=None, abspath=False, force_refresh=False):
+        &#34;&#34;&#34;
+        Generator for all subdirs matching pattern and not excluded.
+
+        Uses cached dir list if available.
+
+        Args:
+            pattern (str): Unix style (glob like/gitignore like) pattern
+            abspath (bool): whether to use absolute or relative (default) paths.
+            force_refresh (bool): Whether to refresh from disk or use the cache.
+        &#34;&#34;&#34;
+        self.populate_dir(force_refresh)
+
+        if pattern is not None:
+            globster = Globster([pattern])
+
+        for d in self._sub_dirs_cache:
+            if pattern is None or globster.match(d):
+                if abspath:
+                    yield os.path.join(self.directory, d)
+                else:
+                    yield d
+
+    def files(self, pattern=None,
+              sort_key=lambda k: k,
+              sort_reverse=False,
+              abspath=False,
+              force_refresh=False):
+        &#34;&#34;&#34;
+        Return a sorted list containing relative path of all files (recursively).
+
+        Uses cached file list if available.
+
+        Args:
+            pattern (str): Unix style (glob like/gitignore like) pattern.
+            sort_key (lambda): key argument for sorted
+            sort_reverse (bool): reverse argument for sorted
+            abspath (bool): whether to use absolute or relative (default) paths.
+            force_refresh (bool): Whether to refresh from disk or use the cache.
+
+        Return:
+            List of all relative file paths.
+        &#34;&#34;&#34;
+        return sorted(self.iterfiles(pattern, abspath, force_refresh),
+                      key=sort_key,
+                      reverse=sort_reverse)
+
+    def subdirs(self, pattern=None, sort_key=lambda k: k,
+                sort_reverse=False, abspath=False,
+                force_refresh=False):
+        &#34;&#34;&#34;
+        Return a sorted list containing relative path of all subdirs(recursively).
+
+        Uses cached file list if available.
+
+        Args:
+            pattern (str): Unix style (glob like/gitignore like) pattern.
+            sort_key (lambda): key argument for sorted
+            sort_reverse (bool): reverse argument for sorted
+            abspath (bool): whether to use absolute or relative (default) paths.
+            force_refresh (bool): Whether to refresh from disk or use the cache.
+
+        Return:
+            List of all relative subdirs paths.
+        &#34;&#34;&#34;
+        return sorted(self.itersubdirs(pattern, abspath, force_refresh),
+                      key=sort_key,
+                      reverse=sort_reverse)
+
+    def relpath(self, path):
+        &#34;&#34;&#34; 
+        Return a relative filepath to path from Dir path.
+        &#34;&#34;&#34;
+        return os.path.relpath(path, start=self.path)
+
+    def abspath(self, relpath):
+        &#34;&#34;&#34;
+        Return an absolute filepath from a relative to the root dir one.
+        &#34;&#34;&#34;
+        return os.path.join(self.dir.path, relpath)
+
+    def size(self):
+        &#34;&#34;&#34; 
+        Return total directory size in bytes.
+
+        Return:
+            int: Total directory size in bytes.
+        &#34;&#34;&#34;
+        dir_size = 0
+        for f in self.iterfiles(abspath=True):
+            dir_size += os.path.getsize(f)
+        return dir_size
+
+    def compress_to(self, archive_path=None):
+        &#34;&#34;&#34; Compress the directory with gzip using tarlib.
+
+        :type archive_path: str
+        :param archive_path: Path to the archive, if None, a tempfile is created
+
+        &#34;&#34;&#34;
+        if archive_path is None:
+            archive = tempfile.NamedTemporaryFile(delete=False)
+            tar_args = []
+            tar_kwargs = {&#39;fileobj&#39;: archive}
+            _return = archive.name
+        else:
+            tar_args = [archive_path]
+            tar_kwargs = {}
+            _return = archive_path
+        tar_kwargs.update({&#39;mode&#39;: &#39;w:gz&#39;})
+        with closing(tarfile.open(*tar_args, **tar_kwargs)) as tar:
+            tar.add(self.path, arcname=&#39;&#39;, exclude=self.is_excluded)
+
+        return _return</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="dirstate.Dir.abspath"><code class="name flex">
+<span>def <span class="ident">abspath</span></span>(<span>self, relpath)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Return an absolute filepath from a relative to the root dir one.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def abspath(self, relpath):
+    &#34;&#34;&#34;
+    Return an absolute filepath from a relative to the root dir one.
+    &#34;&#34;&#34;
+    return os.path.join(self.dir.path, relpath)</code></pre>
+</details>
+</dd>
+<dt id="dirstate.Dir.compress_to"><code class="name flex">
+<span>def <span class="ident">compress_to</span></span>(<span>self, archive_path=None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Compress the directory with gzip using tarlib.</p>
+<p>:type archive_path: str
+:param archive_path: Path to the archive, if None, a tempfile is created</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def compress_to(self, archive_path=None):
+    &#34;&#34;&#34; Compress the directory with gzip using tarlib.
+
+    :type archive_path: str
+    :param archive_path: Path to the archive, if None, a tempfile is created
+
+    &#34;&#34;&#34;
+    if archive_path is None:
+        archive = tempfile.NamedTemporaryFile(delete=False)
+        tar_args = []
+        tar_kwargs = {&#39;fileobj&#39;: archive}
+        _return = archive.name
+    else:
+        tar_args = [archive_path]
+        tar_kwargs = {}
+        _return = archive_path
+    tar_kwargs.update({&#39;mode&#39;: &#39;w:gz&#39;})
+    with closing(tarfile.open(*tar_args, **tar_kwargs)) as tar:
+        tar.add(self.path, arcname=&#39;&#39;, exclude=self.is_excluded)
+
+    return _return</code></pre>
+</details>
+</dd>
+<dt id="dirstate.Dir.depopulate"><code class="name flex">
+<span>def <span class="ident">depopulate</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Clear the cached lists of files and folders, set depopulated state.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def depopulate(self):
+    &#34;&#34;&#34;
+    Clear the cached lists of files and folders, set depopulated state.
+    &#34;&#34;&#34;
+    self._files_cache.clear()
+    self._sub_dirs_cache.clear()
+    self._is_populated = False</code></pre>
+</details>
+</dd>
+<dt id="dirstate.Dir.files"><code class="name flex">
+<span>def <span class="ident">files</span></span>(<span>self, pattern=None, sort_key=&lt;function Dir.&lt;lambda&gt;&gt;, sort_reverse=False, abspath=False, force_refresh=False)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Return a sorted list containing relative path of all files (recursively).</p>
+<p>Uses cached file list if available.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>pattern</code></strong> :&ensp;<code>str</code></dt>
+<dd>Unix style (glob like/gitignore like) pattern.</dd>
+<dt><strong><code>sort_key</code></strong> :&ensp;<code>lambda</code></dt>
+<dd>key argument for sorted</dd>
+<dt><strong><code>sort_reverse</code></strong> :&ensp;<code>bool</code></dt>
+<dd>reverse argument for sorted</dd>
+<dt><strong><code>abspath</code></strong> :&ensp;<code>bool</code></dt>
+<dd>whether to use absolute or relative (default) paths.</dd>
+<dt><strong><code>force_refresh</code></strong> :&ensp;<code>bool</code></dt>
+<dd>Whether to refresh from disk or use the cache.</dd>
+</dl>
+<h2 id="return">Return</h2>
+<p>List of all relative file paths.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def files(self, pattern=None,
+          sort_key=lambda k: k,
+          sort_reverse=False,
+          abspath=False,
+          force_refresh=False):
+    &#34;&#34;&#34;
+    Return a sorted list containing relative path of all files (recursively).
+
+    Uses cached file list if available.
+
+    Args:
+        pattern (str): Unix style (glob like/gitignore like) pattern.
+        sort_key (lambda): key argument for sorted
+        sort_reverse (bool): reverse argument for sorted
+        abspath (bool): whether to use absolute or relative (default) paths.
+        force_refresh (bool): Whether to refresh from disk or use the cache.
+
+    Return:
+        List of all relative file paths.
+    &#34;&#34;&#34;
+    return sorted(self.iterfiles(pattern, abspath, force_refresh),
+                  key=sort_key,
+                  reverse=sort_reverse)</code></pre>
+</details>
+</dd>
+<dt id="dirstate.Dir.is_excluded"><code class="name flex">
+<span>def <span class="ident">is_excluded</span></span>(<span>self, path)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Return whether 'path' is ignored based on exclude patterns</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def is_excluded(self, path):
+    &#34;&#34;&#34; 
+    Return whether &#39;path&#39; is ignored based on exclude patterns
+    &#34;&#34;&#34;
+    match = self.globster.match(self.relpath(path))
+    if match:
+        log.debug(&#34;{0} matched {1} for exclusion&#34;.format(path, match))
+        return True
+    return False</code></pre>
+</details>
+</dd>
+<dt id="dirstate.Dir.iterfiles"><code class="name flex">
+<span>def <span class="ident">iterfiles</span></span>(<span>self, include_pattern=None, abspath=False, force_refresh=False)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Generator for all the files matching pattern and not already excluded.</p>
+<p>Uses cached file list if available.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>pattern</code></strong> :&ensp;<code>str</code></dt>
+<dd>Unix style (glob like/gitignore like) pattern</dd>
+<dt><strong><code>abspath</code></strong> :&ensp;<code>bool</code></dt>
+<dd>Whether to use absolute or relative (default) paths. </dd>
+<dt><strong><code>force_refresh</code></strong> :&ensp;<code>bool</code></dt>
+<dd>Whether to refresh from disk or use the cache.</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def iterfiles(self, include_pattern=None, abspath=False, force_refresh=False):
+    &#34;&#34;&#34; 
+    Generator for all the files matching pattern and not already excluded.
+
+    Uses cached file list if available.
+
+    Args:
+        pattern (str): Unix style (glob like/gitignore like) pattern
+        abspath (bool): Whether to use absolute or relative (default) paths. 
+        force_refresh (bool): Whether to refresh from disk or use the cache.
+    &#34;&#34;&#34;
+    self.populate_dir(force_refresh)
+
+    if include_pattern is not None:
+        globster = Globster([include_pattern])
+
+    for f in self._files_cache:
+        if include_pattern is None or globster.match(f):
+            if abspath:
+                yield os.path.join(self.path, f)
+            else:
+                yield f</code></pre>
+</details>
+</dd>
+<dt id="dirstate.Dir.itersubdirs"><code class="name flex">
+<span>def <span class="ident">itersubdirs</span></span>(<span>self, pattern=None, abspath=False, force_refresh=False)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Generator for all subdirs matching pattern and not excluded.</p>
+<p>Uses cached dir list if available.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>pattern</code></strong> :&ensp;<code>str</code></dt>
+<dd>Unix style (glob like/gitignore like) pattern</dd>
+<dt><strong><code>abspath</code></strong> :&ensp;<code>bool</code></dt>
+<dd>whether to use absolute or relative (default) paths.</dd>
+<dt><strong><code>force_refresh</code></strong> :&ensp;<code>bool</code></dt>
+<dd>Whether to refresh from disk or use the cache.</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def itersubdirs(self, pattern=None, abspath=False, force_refresh=False):
+    &#34;&#34;&#34;
+    Generator for all subdirs matching pattern and not excluded.
+
+    Uses cached dir list if available.
+
+    Args:
+        pattern (str): Unix style (glob like/gitignore like) pattern
+        abspath (bool): whether to use absolute or relative (default) paths.
+        force_refresh (bool): Whether to refresh from disk or use the cache.
+    &#34;&#34;&#34;
+    self.populate_dir(force_refresh)
+
+    if pattern is not None:
+        globster = Globster([pattern])
+
+    for d in self._sub_dirs_cache:
+        if pattern is None or globster.match(d):
+            if abspath:
+                yield os.path.join(self.directory, d)
+            else:
+                yield d</code></pre>
+</details>
+</dd>
+<dt id="dirstate.Dir.populate_dir"><code class="name flex">
+<span>def <span class="ident">populate_dir</span></span>(<span>self, force_refresh=False)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Walk the directory recursively and populate a cache of it's contents.</p>
+<p>Dir.patterns are used for exclusion.
+Paths are stored as relative to the Dir.path</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>force_refresh</code></strong> :&ensp;<code>bool</code></dt>
+<dd>Whether to refresh from disk if cache
+is already populated.</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def populate_dir(self, force_refresh=False):
+    &#34;&#34;&#34;
+    Walk the directory recursively and populate a cache of it&#39;s contents.
+
+    Dir.patterns are used for exclusion.
+    Paths are stored as relative to the Dir.path
+
+    Args:
+        force_refresh (bool): Whether to refresh from disk if cache
+                              is already populated.
+    &#34;&#34;&#34;
+    if not force_refresh and self._is_populated:
+        return
+
+    self._files_cache.clear()
+    self._sub_dirs_cache.clear()
+
+    for root, dirs, files in self.walk():
+        for f in files:
+            relpath = self.relpath(os.path.join(root, f))
+            self._files_cache.append(relpath)
+        for d in dirs:
+            relpath = self.relpath(os.path.join(root, d))
+            self._sub_dirs_cache.append(relpath)
+
+    self._is_populated = True</code></pre>
+</details>
+</dd>
+<dt id="dirstate.Dir.relpath"><code class="name flex">
+<span>def <span class="ident">relpath</span></span>(<span>self, path)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Return a relative filepath to path from Dir path.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def relpath(self, path):
+    &#34;&#34;&#34; 
+    Return a relative filepath to path from Dir path.
+    &#34;&#34;&#34;
+    return os.path.relpath(path, start=self.path)</code></pre>
+</details>
+</dd>
+<dt id="dirstate.Dir.size"><code class="name flex">
+<span>def <span class="ident">size</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Return total directory size in bytes.</p>
+<h2 id="return">Return</h2>
+<dl>
+<dt><strong><code>int</code></strong></dt>
+<dd>Total directory size in bytes.</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def size(self):
+    &#34;&#34;&#34; 
+    Return total directory size in bytes.
+
+    Return:
+        int: Total directory size in bytes.
+    &#34;&#34;&#34;
+    dir_size = 0
+    for f in self.iterfiles(abspath=True):
+        dir_size += os.path.getsize(f)
+    return dir_size</code></pre>
+</details>
+</dd>
+<dt id="dirstate.Dir.subdirs"><code class="name flex">
+<span>def <span class="ident">subdirs</span></span>(<span>self, pattern=None, sort_key=&lt;function Dir.&lt;lambda&gt;&gt;, sort_reverse=False, abspath=False, force_refresh=False)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Return a sorted list containing relative path of all subdirs(recursively).</p>
+<p>Uses cached file list if available.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>pattern</code></strong> :&ensp;<code>str</code></dt>
+<dd>Unix style (glob like/gitignore like) pattern.</dd>
+<dt><strong><code>sort_key</code></strong> :&ensp;<code>lambda</code></dt>
+<dd>key argument for sorted</dd>
+<dt><strong><code>sort_reverse</code></strong> :&ensp;<code>bool</code></dt>
+<dd>reverse argument for sorted</dd>
+<dt><strong><code>abspath</code></strong> :&ensp;<code>bool</code></dt>
+<dd>whether to use absolute or relative (default) paths.</dd>
+<dt><strong><code>force_refresh</code></strong> :&ensp;<code>bool</code></dt>
+<dd>Whether to refresh from disk or use the cache.</dd>
+</dl>
+<h2 id="return">Return</h2>
+<p>List of all relative subdirs paths.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def subdirs(self, pattern=None, sort_key=lambda k: k,
+            sort_reverse=False, abspath=False,
+            force_refresh=False):
+    &#34;&#34;&#34;
+    Return a sorted list containing relative path of all subdirs(recursively).
+
+    Uses cached file list if available.
+
+    Args:
+        pattern (str): Unix style (glob like/gitignore like) pattern.
+        sort_key (lambda): key argument for sorted
+        sort_reverse (bool): reverse argument for sorted
+        abspath (bool): whether to use absolute or relative (default) paths.
+        force_refresh (bool): Whether to refresh from disk or use the cache.
+
+    Return:
+        List of all relative subdirs paths.
+    &#34;&#34;&#34;
+    return sorted(self.itersubdirs(pattern, abspath, force_refresh),
+                  key=sort_key,
+                  reverse=sort_reverse)</code></pre>
+</details>
+</dd>
+<dt id="dirstate.Dir.walk"><code class="name flex">
+<span>def <span class="ident">walk</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Walk the directory like os.path
+(yields a 3-tuple (dirpath, dirnames, filenames)
+except it exclude all files/directories on the fly.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def walk(self):
+    &#34;&#34;&#34;
+    Walk the directory like os.path
+    (yields a 3-tuple (dirpath, dirnames, filenames)
+    except it exclude all files/directories on the fly. 
+    &#34;&#34;&#34;
+    for root, dirs, files in os.walk(self.path, topdown=True):
+        # TODO relative walk, recursive call if root excluder found???
+        #root_excluder = get_root_excluder(root)
+        ndirs = []
+        # First we exclude directories
+        for d in list(dirs):
+            if self.is_excluded(os.path.join(root, d)):
+                dirs.remove(d)
+            elif not os.path.islink(os.path.join(root, d)):
+                ndirs.append(d)
+
+        nfiles = []
+        for fpath in (os.path.join(root, f) for f in files):
+            if not self.is_excluded(fpath) and not os.path.islink(fpath):
+                nfiles.append(os.path.relpath(fpath, root))
+
+        yield root, ndirs, nfiles</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="dirstate.DirSnapshot"><code class="flex name class">
+<span>class <span class="ident">DirSnapshot</span></span>
+<span>(</span><span>dir=None, state=None, file_idx_methods={}, dir_idx_methods={})</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Hold a snapshot of a directory, to be used for comparison.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>dir</code></strong> :&ensp;<a title="dirstate.Dir" href="#dirstate.Dir"><code>Dir</code></a></dt>
+<dd>Wrapper object for the target directory.</dd>
+<dt><strong><code>state</code></strong> :&ensp;<code>dict</code></dt>
+<dd>&nbsp;</dd>
+<dt><strong><code>file_idx_methods</code></strong> :&ensp;<code>dict</code></dt>
+<dd>name / function pairs of indexing
+operations to apply to the files in the folder.
+Eg: {"getmtime":os.path.getmtime, "sha256":filehash}</dd>
+<dt><strong><code>dir_idx_methods</code></strong> :&ensp;<code>dict</code></dt>
+<dd>name / function pairs of indexing
+operations to apply to the subdirectories in the folder.</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class DirSnapshot(object):
+    &#34;&#34;&#34;
+    Hold a snapshot of a directory, to be used for comparison.
+    &#34;&#34;&#34;
+
+    def __init__(self, dir=None, state=None,
+                 file_idx_methods={},
+                 dir_idx_methods={}):
+        &#34;&#34;&#34;
+        Args:
+            dir (Dir): Wrapper object for the target directory.
+            state (dict): 
+            file_idx_methods (dict): name / function pairs of indexing 
+                operations to apply to the files in the folder.
+                Eg: {&#34;getmtime&#34;:os.path.getmtime, &#34;sha256&#34;:filehash}
+            dir_idx_methods (dict): name / function pairs of indexing 
+                operations to apply to the subdirectories in the folder.
+        &#34;&#34;&#34;
+        self.dir = dir
+        self.file_idx_methods = file_idx_methods
+        self.dir_idx_methods = dir_idx_methods
+        self.state = state or self.compute_state()
+
+    def set_file_idx_methods(self, file_idx_methods={}):
+        &#34;&#34;&#34;
+        Set the indexing funcions to apply on the files to obtain 
+        data to store for comparison.
+
+        Args:
+            file_idx_methods (dict): name / function pairs of indexing 
+                operations to apply to the files in the folder.
+        &#34;&#34;&#34;
+        self.file_idx_methods = file_idx_methods
+
+    def set_dir_idx_methods(self, dir_idx_methods={}):
+        &#34;&#34;&#34;
+        Set the indexing funcions to apply on the subdirectories to obtain 
+        data to store for comparison.
+
+        Args:
+            dir_idx_methods (dict): name / function pairs of indexing 
+                operations to apply to the subdirs in the folder.
+        &#34;&#34;&#34;
+        self.set_dir_idx_methods = dir_idx_methods
+
+    def compute_state(self):
+        &#34;&#34;&#34;
+        Calculate the snapshot of the folder.
+
+        Returns:
+            state: dictionary with the computed state.
+
+        Example of state strcuture:
+        &#34;state&#34;: {
+            &#34;root&#34;:{
+                &#34;root/path&#34;:{
+                    &#34;idx_method_name&#34;:&#34;timeStamp&#34;,
+                    &#34;idx_method_name2&#34;:&#34;size&#34;
+                }
+            }
+            &#34;subdirs&#34;:{
+                &#34;dir/path1&#34;:{
+                    &#34;idx_method_name&#34;:&#34;timeStamp&#34;,
+                    &#34;idx_method_name2&#34;:&#34;size&#34;
+                },
+                &#34;dir/path2&#34;:{
+                    &#34;idx_method_name&#34;:&#34;timeStamp&#34;,
+                    &#34;idx_method_name2&#34;:&#34;size&#34;
+                }
+            }
+            &#34;files&#34;:{
+                &#34;file/path&#34;:{
+                    &#34;idx_method_name&#34;:&#34;hash&#34;,
+                    &#34;idx_method_name2&#34;:&#34;hash2&#34;
+                },
+                &#34;file2/path2&#34;:{
+                    &#34;idx_method_name&#34;:&#34;hash&#34;,
+                    &#34;idx_method_name2&#34;:&#34;hash2&#34;
+                }
+            }
+        }
+        &#34;&#34;&#34;
+        dir.populate(force_refresh=True)
+        state = {}
+        state[&#39;root&#39;] = subdir_data(self.dir.relpath(self.dir.path))
+        state[&#39;subdirs&#39;] = index_subdirs()
+        state[&#39;files&#39;] = index_files()
+        dir.depopulate()
+        return state
+
+    def index_files(self):
+        &#34;&#34;&#34;
+        Generate the files indexes using the idx_methods.
+
+        Returns:
+            files_index (dict): dictionary of relative file paths and 
+                associated data: 
+                    Eg. relpath : {methodName : data, methodName : data}
+        &#34;&#34;&#34;
+        files_index = {}
+        for f in self.dir.iterfiles():
+            files_index[f] = self.index_file(f)
+        return files_index
+
+    def index_subdirs(self):
+        &#34;&#34;&#34;
+        Generate the directory indexes using the idx_methods.
+
+        Returns:
+            dirs_index (dict): dictionary of relative dir paths and 
+                associated data: 
+                    Eg. relpath : {methodName : data, methodName : data}
+        &#34;&#34;&#34;
+        dirs_index = {}
+        for d in self.dir.itersubdirs():
+            dirs_index[d] = self.subdir_data(d)
+        return dirs_index
+
+    def file_data(self, f_path):
+        &#34;&#34;&#34;
+        Compute data for a file using idx_methods.
+
+        Args:
+            f_path (str): relative path of the file.
+
+        Returns:
+            file_data (dict): dictionary of methodNames / generatedData
+        &#34;&#34;&#34;
+        file_data = {}
+        for method_key in self.file_idx_methods:
+            idx_method = self.file_idx_methods[method_key]
+            try:
+                file_data[method_key] = self.idx_method(self.dir
+                                                        .abspath(f_path))
+            except Exception as exc:
+                print(f_path, exc)
+        return file_data
+
+    def subdir_data(self, d_path):
+        &#34;&#34;&#34;
+        Compute data for a subdirectory using idx_methods.
+
+        Args:
+            d_path (str): relative path of the subdir.
+
+        Returns:
+            dir_data (dict): dictionary of methodNames / generatedData
+        &#34;&#34;&#34;
+        dir_data = {}
+        for method_key in self.dir_idx_methods:
+            idx_method = self.dir_idx_methods[method_key]
+            try:
+                file_dir_datadata[method_key] = (
+                    self.idx_method(self.dir.abspath(d_path)))
+            except Exception as exc:
+                print(d_path, exc)
+        return dir_data
+
+    def __sub__(self, other):
+        &#34;&#34;&#34; 
+        Compute diff with minus &#34;-&#34; operator overloading.
+
+        Most commonly used for 
+            recent_snapshot - older_snapshot.
+
+        Returns: 
+            dict with the following keys:
+                - deleted files `deleted&#39;
+                - created files `created&#39;
+                - modified files `modified&#39;
+                - deleted directories `deleted_dirs&#39;
+
+        &gt;&gt;&gt; snapshot_A = DirSnapshot(Dir(&#39;/path_A&#39;))
+        &gt;&gt;&gt; snapshot_B = DirState(Dir(&#39;/path_B&#39;))
+        &gt;&gt;&gt; diff =  snapshot_B - snapshot_A
+        &gt;&gt;&gt; # Equals to
+        &gt;&gt;&gt; diff = compute_diff(snapshot_B.state, snapshot_A.state)
+        &#34;&#34;&#34;
+        return DirSnapshot.compute_diff(self.state, other.state)
+
+    @classmethod
+    def compute_diff(cls, dir_state_new, dir_state_old,
+                     cmp_key=None):
+        &#34;&#34;&#34; 
+        Compare `dir_state_new&#39; and `dir_state_old&#39; and return the diff.
+
+        Args:
+            dir_state_new (DirSnapshot.state)
+            dir_state_old (DirSnapshot.state)
+            cmp_key (str): name of the file index data 
+                to use for the comparison. If missing all common 
+                metadata will be used. If no common metadata is 
+                found modified will be empty.
+
+        Returns: 
+            dict with the following keys:
+                - deleted files `deleted&#39;
+                - created files `created&#39;
+                - modified files `modified&#39;
+                - unknown modified state &#39;modified_unknown&#39;
+                - deleted directories `deleted_dirs&#39;
+        &#34;&#34;&#34;
+        old_files = dir_state_old[&#39;files&#39;].keys()
+        new_files = dir_state_new[&#39;files&#39;].keys()
+        old_dirs = dir_state_old[&#39;subdirs&#39;].keys()
+        new_dirs = dir_state_new[&#39;subdirs&#39;].keys()
+
+        data = {}
+        data[&#39;deleted&#39;] = list(old_files - new_files)
+        data[&#39;created&#39;] = list(new_files - old_files)
+        data[&#39;modified&#39;] = []
+        data[&#39;modified_unknown&#39;] = []
+        data[&#39;deleted_dirs&#39;] = list(old_dirs - new_dirs)
+
+        for f in old_files.intersection(new_files):
+            cmp_res = DirSnapshot.compare_entry(new_files[f],
+                                                old_files[f],
+                                                cmp_key)
+            if cmp_res == 1:
+                data[&#39;modified&#39;].append(f)
+            if cmp_res == 0:
+                pass
+            if cmp_res == -1:
+                data[&#39;modified_unknown&#39;].append(f)
+        return data
+
+    @classmethod
+    def compare_entry(cls, new_data, old_data, cmp_key=None):
+        &#34;&#34;&#34;
+        Check modified status of an entry using common data keys 
+        or cmp_key if set.
+
+        Args:
+            new_data (dict): new data organized in key / value
+            old_data (dict): old data organized in key / value
+            cmp_key (str): key of the value to use for the comparison,
+                if None, all the common keys will be used instead.
+
+        Returns:
+            (int) with the following values:
+                 1: modified
+                 0: not modified
+                -1: unknown 
+        &#34;&#34;&#34;
+        if cmp_key:
+            if (new_data.has_key(cmp_key)
+                    and old_data.has_key(cmp_key)):
+                if new_data[cmp_key] != old_data[cmp_key]:
+                    # modified
+                    return 1
+                else:
+                    # unknown
+                    return -1
+        else:
+            methods = old_data.keys().intersection(new_data.keys())
+            if methods.len() == 0:
+                # unknown
+                return -1
+            else:
+                for key in methods:
+                    if new_data[key] != old_data[key]:
+                        # modified
+                        return 1
+        # not modified
+        return 0</code></pre>
+</details>
+<h3>Static methods</h3>
+<dl>
+<dt id="dirstate.DirSnapshot.compare_entry"><code class="name flex">
+<span>def <span class="ident">compare_entry</span></span>(<span>new_data, old_data, cmp_key=None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Check modified status of an entry using common data keys
+or cmp_key if set.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>new_data</code></strong> :&ensp;<code>dict</code></dt>
+<dd>new data organized in key / value</dd>
+<dt><strong><code>old_data</code></strong> :&ensp;<code>dict</code></dt>
+<dd>old data organized in key / value</dd>
+<dt><strong><code>cmp_key</code></strong> :&ensp;<code>str</code></dt>
+<dd>key of the value to use for the comparison,
+if None, all the common keys will be used instead.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>(int) with the following values:
+1: modified
+0: not modified
+-1: unknown</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@classmethod
+def compare_entry(cls, new_data, old_data, cmp_key=None):
+    &#34;&#34;&#34;
+    Check modified status of an entry using common data keys 
+    or cmp_key if set.
+
+    Args:
+        new_data (dict): new data organized in key / value
+        old_data (dict): old data organized in key / value
+        cmp_key (str): key of the value to use for the comparison,
+            if None, all the common keys will be used instead.
+
+    Returns:
+        (int) with the following values:
+             1: modified
+             0: not modified
+            -1: unknown 
+    &#34;&#34;&#34;
+    if cmp_key:
+        if (new_data.has_key(cmp_key)
+                and old_data.has_key(cmp_key)):
+            if new_data[cmp_key] != old_data[cmp_key]:
+                # modified
+                return 1
+            else:
+                # unknown
+                return -1
+    else:
+        methods = old_data.keys().intersection(new_data.keys())
+        if methods.len() == 0:
+            # unknown
+            return -1
+        else:
+            for key in methods:
+                if new_data[key] != old_data[key]:
+                    # modified
+                    return 1
+    # not modified
+    return 0</code></pre>
+</details>
+</dd>
+<dt id="dirstate.DirSnapshot.compute_diff"><code class="name flex">
+<span>def <span class="ident">compute_diff</span></span>(<span>dir_state_new, dir_state_old, cmp_key=None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Compare <code>dir_state_new' and</code>dir_state_old' and return the diff.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt>dir_state_new (DirSnapshot.state)</dt>
+<dt>dir_state_old (DirSnapshot.state)</dt>
+<dt><strong><code>cmp_key</code></strong> :&ensp;<code>str</code></dt>
+<dd>name of the file index data
+to use for the comparison. If missing all common
+metadata will be used. If no common metadata is
+found modified will be empty.</dd>
+<dt><strong><code>Returns</code></strong></dt>
+<dd>dict with the following keys:
+- deleted files <code>deleted'
+- created files</code>created'
+- modified files <code>modified'
+- unknown modified state 'modified_unknown'
+- deleted directories</code>deleted_dirs'</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@classmethod
+def compute_diff(cls, dir_state_new, dir_state_old,
+                 cmp_key=None):
+    &#34;&#34;&#34; 
+    Compare `dir_state_new&#39; and `dir_state_old&#39; and return the diff.
+
+    Args:
+        dir_state_new (DirSnapshot.state)
+        dir_state_old (DirSnapshot.state)
+        cmp_key (str): name of the file index data 
+            to use for the comparison. If missing all common 
+            metadata will be used. If no common metadata is 
+            found modified will be empty.
+
+    Returns: 
+        dict with the following keys:
+            - deleted files `deleted&#39;
+            - created files `created&#39;
+            - modified files `modified&#39;
+            - unknown modified state &#39;modified_unknown&#39;
+            - deleted directories `deleted_dirs&#39;
+    &#34;&#34;&#34;
+    old_files = dir_state_old[&#39;files&#39;].keys()
+    new_files = dir_state_new[&#39;files&#39;].keys()
+    old_dirs = dir_state_old[&#39;subdirs&#39;].keys()
+    new_dirs = dir_state_new[&#39;subdirs&#39;].keys()
+
+    data = {}
+    data[&#39;deleted&#39;] = list(old_files - new_files)
+    data[&#39;created&#39;] = list(new_files - old_files)
+    data[&#39;modified&#39;] = []
+    data[&#39;modified_unknown&#39;] = []
+    data[&#39;deleted_dirs&#39;] = list(old_dirs - new_dirs)
+
+    for f in old_files.intersection(new_files):
+        cmp_res = DirSnapshot.compare_entry(new_files[f],
+                                            old_files[f],
+                                            cmp_key)
+        if cmp_res == 1:
+            data[&#39;modified&#39;].append(f)
+        if cmp_res == 0:
+            pass
+        if cmp_res == -1:
+            data[&#39;modified_unknown&#39;].append(f)
+    return data</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="dirstate.DirSnapshot.compute_state"><code class="name flex">
+<span>def <span class="ident">compute_state</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Calculate the snapshot of the folder.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>state</code></strong></dt>
+<dd>dictionary with the computed state.</dd>
+<dt><code>Example</code> of <code>state</code> <code>strcuture</code>:</dt>
+<dd>&nbsp;</dd>
+</dl>
+<p>"state": {
+"root":{
+"root/path":{
+"idx_method_name":"timeStamp",
+"idx_method_name2":"size"
+}
+}
+"subdirs":{
+"dir/path1":{
+"idx_method_name":"timeStamp",
+"idx_method_name2":"size"
+},
+"dir/path2":{
+"idx_method_name":"timeStamp",
+"idx_method_name2":"size"
+}
+}
+"files":{
+"file/path":{
+"idx_method_name":"hash",
+"idx_method_name2":"hash2"
+},
+"file2/path2":{
+"idx_method_name":"hash",
+"idx_method_name2":"hash2"
+}
+}
+}</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def compute_state(self):
+    &#34;&#34;&#34;
+    Calculate the snapshot of the folder.
+
+    Returns:
+        state: dictionary with the computed state.
+
+    Example of state strcuture:
+    &#34;state&#34;: {
+        &#34;root&#34;:{
+            &#34;root/path&#34;:{
+                &#34;idx_method_name&#34;:&#34;timeStamp&#34;,
+                &#34;idx_method_name2&#34;:&#34;size&#34;
+            }
+        }
+        &#34;subdirs&#34;:{
+            &#34;dir/path1&#34;:{
+                &#34;idx_method_name&#34;:&#34;timeStamp&#34;,
+                &#34;idx_method_name2&#34;:&#34;size&#34;
+            },
+            &#34;dir/path2&#34;:{
+                &#34;idx_method_name&#34;:&#34;timeStamp&#34;,
+                &#34;idx_method_name2&#34;:&#34;size&#34;
+            }
+        }
+        &#34;files&#34;:{
+            &#34;file/path&#34;:{
+                &#34;idx_method_name&#34;:&#34;hash&#34;,
+                &#34;idx_method_name2&#34;:&#34;hash2&#34;
+            },
+            &#34;file2/path2&#34;:{
+                &#34;idx_method_name&#34;:&#34;hash&#34;,
+                &#34;idx_method_name2&#34;:&#34;hash2&#34;
+            }
+        }
+    }
+    &#34;&#34;&#34;
+    dir.populate(force_refresh=True)
+    state = {}
+    state[&#39;root&#39;] = subdir_data(self.dir.relpath(self.dir.path))
+    state[&#39;subdirs&#39;] = index_subdirs()
+    state[&#39;files&#39;] = index_files()
+    dir.depopulate()
+    return state</code></pre>
+</details>
+</dd>
+<dt id="dirstate.DirSnapshot.file_data"><code class="name flex">
+<span>def <span class="ident">file_data</span></span>(<span>self, f_path)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Compute data for a file using idx_methods.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>f_path</code></strong> :&ensp;<code>str</code></dt>
+<dd>relative path of the file.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>file_data</code></strong> :&ensp;<code>dict</code></dt>
+<dd>dictionary of methodNames / generatedData</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def file_data(self, f_path):
+    &#34;&#34;&#34;
+    Compute data for a file using idx_methods.
+
+    Args:
+        f_path (str): relative path of the file.
+
+    Returns:
+        file_data (dict): dictionary of methodNames / generatedData
+    &#34;&#34;&#34;
+    file_data = {}
+    for method_key in self.file_idx_methods:
+        idx_method = self.file_idx_methods[method_key]
+        try:
+            file_data[method_key] = self.idx_method(self.dir
+                                                    .abspath(f_path))
+        except Exception as exc:
+            print(f_path, exc)
+    return file_data</code></pre>
+</details>
+</dd>
+<dt id="dirstate.DirSnapshot.index_files"><code class="name flex">
+<span>def <span class="ident">index_files</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Generate the files indexes using the idx_methods.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>files_index</code></strong> :&ensp;<code>dict</code></dt>
+<dd>dictionary of relative file paths and
+associated data:
+Eg. relpath : {methodName : data, methodName : data}</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def index_files(self):
+    &#34;&#34;&#34;
+    Generate the files indexes using the idx_methods.
+
+    Returns:
+        files_index (dict): dictionary of relative file paths and 
+            associated data: 
+                Eg. relpath : {methodName : data, methodName : data}
+    &#34;&#34;&#34;
+    files_index = {}
+    for f in self.dir.iterfiles():
+        files_index[f] = self.index_file(f)
+    return files_index</code></pre>
+</details>
+</dd>
+<dt id="dirstate.DirSnapshot.index_subdirs"><code class="name flex">
+<span>def <span class="ident">index_subdirs</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Generate the directory indexes using the idx_methods.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>dirs_index</code></strong> :&ensp;<code>dict</code></dt>
+<dd>dictionary of relative dir paths and
+associated data:
+Eg. relpath : {methodName : data, methodName : data}</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def index_subdirs(self):
+    &#34;&#34;&#34;
+    Generate the directory indexes using the idx_methods.
+
+    Returns:
+        dirs_index (dict): dictionary of relative dir paths and 
+            associated data: 
+                Eg. relpath : {methodName : data, methodName : data}
+    &#34;&#34;&#34;
+    dirs_index = {}
+    for d in self.dir.itersubdirs():
+        dirs_index[d] = self.subdir_data(d)
+    return dirs_index</code></pre>
+</details>
+</dd>
+<dt id="dirstate.DirSnapshot.set_dir_idx_methods"><code class="name flex">
+<span>def <span class="ident">set_dir_idx_methods</span></span>(<span>self, dir_idx_methods={})</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Set the indexing funcions to apply on the subdirectories to obtain
+data to store for comparison.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>dir_idx_methods</code></strong> :&ensp;<code>dict</code></dt>
+<dd>name / function pairs of indexing
+operations to apply to the subdirs in the folder.</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def set_dir_idx_methods(self, dir_idx_methods={}):
+    &#34;&#34;&#34;
+    Set the indexing funcions to apply on the subdirectories to obtain 
+    data to store for comparison.
+
+    Args:
+        dir_idx_methods (dict): name / function pairs of indexing 
+            operations to apply to the subdirs in the folder.
+    &#34;&#34;&#34;
+    self.set_dir_idx_methods = dir_idx_methods</code></pre>
+</details>
+</dd>
+<dt id="dirstate.DirSnapshot.set_file_idx_methods"><code class="name flex">
+<span>def <span class="ident">set_file_idx_methods</span></span>(<span>self, file_idx_methods={})</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Set the indexing funcions to apply on the files to obtain
+data to store for comparison.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>file_idx_methods</code></strong> :&ensp;<code>dict</code></dt>
+<dd>name / function pairs of indexing
+operations to apply to the files in the folder.</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def set_file_idx_methods(self, file_idx_methods={}):
+    &#34;&#34;&#34;
+    Set the indexing funcions to apply on the files to obtain 
+    data to store for comparison.
+
+    Args:
+        file_idx_methods (dict): name / function pairs of indexing 
+            operations to apply to the files in the folder.
+    &#34;&#34;&#34;
+    self.file_idx_methods = file_idx_methods</code></pre>
+</details>
+</dd>
+<dt id="dirstate.DirSnapshot.subdir_data"><code class="name flex">
+<span>def <span class="ident">subdir_data</span></span>(<span>self, d_path)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Compute data for a subdirectory using idx_methods.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>d_path</code></strong> :&ensp;<code>str</code></dt>
+<dd>relative path of the subdir.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>dir_data</code></strong> :&ensp;<code>dict</code></dt>
+<dd>dictionary of methodNames / generatedData</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def subdir_data(self, d_path):
+    &#34;&#34;&#34;
+    Compute data for a subdirectory using idx_methods.
+
+    Args:
+        d_path (str): relative path of the subdir.
+
+    Returns:
+        dir_data (dict): dictionary of methodNames / generatedData
+    &#34;&#34;&#34;
+    dir_data = {}
+    for method_key in self.dir_idx_methods:
+        idx_method = self.dir_idx_methods[method_key]
+        try:
+            file_dir_datadata[method_key] = (
+                self.idx_method(self.dir.abspath(d_path)))
+        except Exception as exc:
+            print(d_path, exc)
+    return dir_data</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="dirstate.Dir" href="#dirstate.Dir">Dir</a></code></h4>
+<ul class="two-column">
+<li><code><a title="dirstate.Dir.abspath" href="#dirstate.Dir.abspath">abspath</a></code></li>
+<li><code><a title="dirstate.Dir.compress_to" href="#dirstate.Dir.compress_to">compress_to</a></code></li>
+<li><code><a title="dirstate.Dir.depopulate" href="#dirstate.Dir.depopulate">depopulate</a></code></li>
+<li><code><a title="dirstate.Dir.files" href="#dirstate.Dir.files">files</a></code></li>
+<li><code><a title="dirstate.Dir.is_excluded" href="#dirstate.Dir.is_excluded">is_excluded</a></code></li>
+<li><code><a title="dirstate.Dir.iterfiles" href="#dirstate.Dir.iterfiles">iterfiles</a></code></li>
+<li><code><a title="dirstate.Dir.itersubdirs" href="#dirstate.Dir.itersubdirs">itersubdirs</a></code></li>
+<li><code><a title="dirstate.Dir.populate_dir" href="#dirstate.Dir.populate_dir">populate_dir</a></code></li>
+<li><code><a title="dirstate.Dir.relpath" href="#dirstate.Dir.relpath">relpath</a></code></li>
+<li><code><a title="dirstate.Dir.size" href="#dirstate.Dir.size">size</a></code></li>
+<li><code><a title="dirstate.Dir.subdirs" href="#dirstate.Dir.subdirs">subdirs</a></code></li>
+<li><code><a title="dirstate.Dir.walk" href="#dirstate.Dir.walk">walk</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="dirstate.DirSnapshot" href="#dirstate.DirSnapshot">DirSnapshot</a></code></h4>
+<ul class="">
+<li><code><a title="dirstate.DirSnapshot.compare_entry" href="#dirstate.DirSnapshot.compare_entry">compare_entry</a></code></li>
+<li><code><a title="dirstate.DirSnapshot.compute_diff" href="#dirstate.DirSnapshot.compute_diff">compute_diff</a></code></li>
+<li><code><a title="dirstate.DirSnapshot.compute_state" href="#dirstate.DirSnapshot.compute_state">compute_state</a></code></li>
+<li><code><a title="dirstate.DirSnapshot.file_data" href="#dirstate.DirSnapshot.file_data">file_data</a></code></li>
+<li><code><a title="dirstate.DirSnapshot.index_files" href="#dirstate.DirSnapshot.index_files">index_files</a></code></li>
+<li><code><a title="dirstate.DirSnapshot.index_subdirs" href="#dirstate.DirSnapshot.index_subdirs">index_subdirs</a></code></li>
+<li><code><a title="dirstate.DirSnapshot.set_dir_idx_methods" href="#dirstate.DirSnapshot.set_dir_idx_methods">set_dir_idx_methods</a></code></li>
+<li><code><a title="dirstate.DirSnapshot.set_file_idx_methods" href="#dirstate.DirSnapshot.set_file_idx_methods">set_file_idx_methods</a></code></li>
+<li><code><a title="dirstate.DirSnapshot.subdir_data" href="#dirstate.DirSnapshot.subdir_data">subdir_data</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.7.5</a>.</p>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad()</script>
+</body>
+</html>
