@@ -43,9 +43,9 @@ dir_state = DirState(d, None, xxhash_file)
 #with open("./3dnpc_state.json", 'w') as f:
 #            f.write(json.dumps(dir_state.state))
 
-old_state = DirState(d, DirState.from_json('./3dnpc_state.json').state, xxhash_file)
+old_state = DirState(d, DirState.from_json('./out/3dnpc_state.json').state, xxhash_file)
 
 diff = dir_state - old_state
 
-with open("./diff.json", 'w') as f:
+with open("./out/diff.json", 'w') as f:
             f.write(json.dumps(diff))
