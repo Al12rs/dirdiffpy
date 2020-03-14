@@ -216,6 +216,8 @@ class Globster(object):
             "basename" : [],
             "fullpath" : [],
         }
+        if not patterns:
+            return
         for pat in patterns:
             pat = normalize_pattern(pat)
             pattern_lists[Globster.identify(pat)].append(pat)
@@ -260,14 +262,14 @@ class Globster(object):
             # We can't show the default e.msg to the user as thats for
             # the combined pattern we sent to regex. Instead we indicate to
             # the user that an ignore file needs fixing.
-            logger.error('Invalid pattern found in regex: %s.', e.msg)
-            e.msg = "File ~/.bazaar/ignore or .bzrignore contains error(s)."
+            #e.msg = "File ~/.bazaar/ignore or .bzrignore contains error(s)."
+            logger.error('Invalid pattern found in regex')
             bad_patterns = ''
             for _, patterns in self._regex_patterns:
                 for p in patterns:
                     if not Globster.is_pattern_valid(p):
                         bad_patterns += ('\n  %s' % p)
-            e.msg += bad_patterns
+            #e.msg += bad_patterns
             raise e
         
 
