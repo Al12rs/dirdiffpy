@@ -17,7 +17,7 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
-from typing import Any, Callable, Dict, Iterator, List
+from typing import Any, Callable, Dict, Generator, Iterator, List, Tuple
 import xxhash
 import os
 import hashlib
@@ -25,7 +25,10 @@ import json
 from globster import Globster
 from logging import log
 
-IndexerType = Dict[str, Callable[[str], Any]]
+IndexerType = Tuple[str, Callable[[str], Any]]
+IndexedDataType = Dict[str, Any]
+IndexType = Dict[str, IndexedDataType]
+DirSnapshotType = Dict[str, IndexType]
 
 
 class FileIndexers:
@@ -60,15 +63,15 @@ class FileIndexers:
 
     @classmethod
     def XXHASH64(cls) -> IndexerType:
-        return {"xxhash": cls.xxhash_file}
+        return ("xxhash", cls.xxhash_file)
 
     @classmethod
     def GETMTIME(cls) -> IndexerType:
-        return {"getmtime": os.path.getmtime}
+        return ("getmtime", os.path.getmtime)
 
     @classmethod
     def SHA256(cls) -> IndexerType:
-        return {"sha256": cls.sha256_file}
+        return ("sha256", cls.sha256_file)
 
 
 class Dir(object):
@@ -91,7 +94,7 @@ class Dir(object):
             by default: ['.git/', '.hg/', '.svn/']
     """
 
-    def __init__(self, directory=".", exclude_file:str=None,
+    def __init__(self, directory=".", exclude_file: str = None,
                  excludes=['.git/', '.hg/', '.svn/']):
 
         if not os.path.isdir(directory):
@@ -100,8 +103,8 @@ class Dir(object):
         self.path = os.path.abspath(directory)
         self.parent = os.path.dirname(self.path)
         self.patterns = excludes
-        self._files_cache:List[str] = []
-        self._sub_dirs_cache:List[str] = []
+        self._files_cache: List[str] = []
+        self._sub_dirs_cache: List[str] = []
         self._is_populated = False
 
         if exclude_file:
@@ -114,7 +117,7 @@ class Dir(object):
 
         self.globster = Globster(self.patterns)
 
-    def is_excluded(self, path:str) -> bool:
+    def is_excluded(self, path: str) -> bool:
         """ 
         Return whether 'path' is ignored based on exclude patterns
         """
@@ -124,7 +127,7 @@ class Dir(object):
             return True
         return False
 
-    def walk(self) -> Iterator:
+    def walk(self) -> Generator[Tuple[str, list[str], list[str]]]:
         """
         Walk the directory like os.path
         (yields a 3-tuple (dirpath, dirnames, filenames)
@@ -148,7 +151,7 @@ class Dir(object):
 
             yield root, ndirs, nfiles
 
-    def populate_dir(self, force_refresh=False) -> None:
+    def populate(self, force_refresh=False) -> None:
         """
         Walk the directory recursively and populate a cache of it's contents.
 
@@ -183,7 +186,8 @@ class Dir(object):
         self._sub_dirs_cache.clear()
         self._is_populated = False
 
-    def iterfiles(self, include_pattern:str=None, abspath=False, force_refresh=False):
+    def iterfiles(self, include_pattern: str = None,
+                  abspath=False, force_refresh=False) -> Generator[str]:
         """ 
         Generator for all the files matching pattern and not already excluded.
 
@@ -194,7 +198,7 @@ class Dir(object):
             abspath (bool): Whether to use absolute or relative (default) paths. 
             force_refresh (bool): Whether to refresh from disk or use the cache.
         """
-        self.populate_dir(force_refresh)
+        self.populate(force_refresh)
 
         globster = Globster([include_pattern])
 
@@ -205,7 +209,9 @@ class Dir(object):
                 else:
                     yield f
 
-    def itersubdirs(self, pattern=None, abspath=False, force_refresh=False):
+    def itersubdirs(self, pattern:str=None, 
+                    abspath=False, 
+                    force_refresh=False) -> Generator[str]:
         """
         Generator for all subdirs matching pattern and not excluded.
 
@@ -216,7 +222,7 @@ class Dir(object):
             abspath (bool): whether to use absolute or relative (default) paths.
             force_refresh (bool): Whether to refresh from disk or use the cache.
         """
-        self.populate_dir(force_refresh)
+        self.populate(force_refresh)
 
         globster = Globster([pattern])
 
@@ -227,11 +233,11 @@ class Dir(object):
                 else:
                     yield d
 
-    def files(self, pattern=None,
+    def files(self, pattern:str=None,
               sort_key=lambda k: k,
               sort_reverse=False,
               abspath=False,
-              force_refresh=False) -> list:
+              force_refresh=False) -> List[str]:
         """
         Return a sorted list containing relative path of all files (recursively).
 
@@ -251,9 +257,10 @@ class Dir(object):
                       key=sort_key,
                       reverse=sort_reverse)
 
-    def subdirs(self, pattern=None, sort_key=lambda k: k,
+    def subdirs(self, pattern:str=None, 
+                sort_key=lambda k: k,
                 sort_reverse=False, abspath=False,
-                force_refresh=False) -> list:
+                force_refresh=False) -> List[str]:
         """
         Return a sorted list containing relative path of all subdirs(recursively).
 
@@ -273,13 +280,13 @@ class Dir(object):
                       key=sort_key,
                       reverse=sort_reverse)
 
-    def relpath(self, path:str) -> str:
+    def relpath(self, path: str) -> str:
         """ 
         Return a relative filepath to path from Dir path.
         """
         return os.path.relpath(path, start=self.path)
 
-    def abspath(self, relpath:str) -> str:
+    def abspath(self, relpath: str) -> str:
         """
         Return an absolute filepath from a relative to the root dir one.
         """
@@ -297,7 +304,7 @@ class Dir(object):
             dir_size += os.path.getsize(f)
         return dir_size
 
-    #def compress_to(self, archive_path=None):
+    # def compress_to(self, archive_path=None):
         """ Compress the directory with gzip using tarlib.
 
         :type archive_path: str
@@ -321,12 +328,283 @@ class Dir(object):
     """
 
 
+def index_files(dir: Dir, file_idx_methods={}) -> dict:
+    """
+    Generate the files indexes using the idx_methods.
+    
+    Returns:
+        files_index (dict): dictionary of relative file paths and 
+            associated data: 
+                Eg. relpath : {methodName : data, methodName : data}
+    """
+    files_index = {}
+    for f in dir.iterfiles():
+        files_index[f] = compute_file(dir, f, file_idx_methods)
+    return files_index
 
-def dirSnapshot(targetDir: str,
-                excludes: List[str] =
-                ['.git/', '.hg/', '.svn/'],
-                file_indexers: List[IndexerType] =
-                [FileIndexers.XXHASH64()],
-                dir_indexers: List[IndexerType] = []):
+
+def index_subdirs(dir: Dir, dir_idx_methods={}) -> dict:
     """
+    Generate the directory indexes using the idx_methods.
+    Returns:
+        dirs_index (dict): dictionary of relative dir paths and 
+            associated data: 
+                Eg. relpath : {methodName : data, methodName : data}
     """
+    dirs_index = {}
+    for d in dir.itersubdirs():
+        dirs_index[d] = compute_subdir(dir, d, dir_idx_methods)
+    return dirs_index
+
+
+def update_file_index(dir: Dir, file_index={},
+                      file_idx_methods={},
+                      files_to_update=None) -> dict:
+    """
+    Add additional data to files_index using file_idx_methods.
+
+    If a file list is provided, only those files will be updated.
+
+    If parsed files are missing from they index they are added with
+    the data from file_idx_methods.
+
+    Existing files in the index are not removed if missing.
+
+    If data can't be computed a message is printed but the file
+    entry is added anyways.
+
+    Args:
+        file_index (dict): dictionary to update.
+        file_idx_methods (dict): name and function to apply to the files
+            to obtain the new data.
+        files_to_update (list): optional list of relative paths of files 
+            on which to compute and add the new data. If missing 
+            all indexed files are computed.
+    """
+    if files_to_update:
+        files = files_to_update
+    else:
+        files = dir.files(force_refresh=True)
+        dir.depopulate()
+    for f in files:
+        if not file_index.has_key(f):
+            print("File was not in index: {}".format(f))
+            file_index[f] = {}
+        file_index[f].update(compute_file(dir, f, file_idx_methods))
+    return file_index
+
+
+def update_subdir_index(dir: Dir, subdirs_index={},
+                        dir_idx_methods={},
+                        dirs_to_update=None) -> dict:
+    """
+    Add additional data to subdirs_index using dir_idx_methods.
+    If a dir list is provided, only those dirs will be updated.
+    If parsed dirs are missing from they index they are added with
+    the data from dir_idx_methods.
+    Existing dirs in the index are not removed if missing.
+    If data can't be computed a message is printed but the dir
+    entry is added anyways.
+    Args:
+        subdirs_index (dict): dictionary to update. 
+        dir_idx_methods (dict): name and function to apply to the dirs
+            to obtain the new data.
+        dirs_to_update (list): optional list of relative paths of dirs 
+            on which to compute and add the new data. If missing 
+            all indexed dirs are computed.
+    """
+    if dirs_to_update:
+        dirs = dirs_to_update
+    else:
+        dirs = dir.subdirs(force_refresh=True)
+        dir.depopulate()
+    for d in dirs:
+        if not subdirs_index.has_key(d):
+            print("Dir was not in index: {}".format(d))
+            subdirs_index[d] = {}
+        subdirs_index[d].update(compute_subdir(dir, d, dir_idx_methods))
+    return subdirs_index
+
+
+def compute_file(dir: Dir, f_path, file_idx_methods) -> dict:
+    """
+    Compute data for a file using idx_methods.
+    Args:
+        f_path (str): relative path of the file.
+    Returns:
+        file_data (dict): dictionary of methodNames / generatedData
+    """
+    file_data = {}
+    for method_key in file_idx_methods:
+        idx_method = file_idx_methods[method_key]
+        try:
+            file_data[method_key] = idx_method(dir.abspath(f_path))
+        except Exception as exc:
+            print(f_path, exc)
+    return file_data
+
+
+def compute_subdir(dir: Dir, d_path, dir_idx_methods) -> dict:
+    """
+    Compute data for a subdirectory using idx_methods.
+    Args:
+        d_path (str): relative path of the subdir.
+    Returns:
+        dir_data (dict): dictionary of methodNames / generatedData
+    """
+    dir_data = {}
+    for method_key in dir_idx_methods:
+        idx_method = dir_idx_methods[method_key]
+        try:
+            dir_data[method_key] = idx_method(dir.abspath(d_path))
+        except Exception as exc:
+            print(d_path, exc)
+    return dir_data
+
+
+def snapshot_dir(targetDir: str,
+                 excludes: List[str] =
+                 ['.git/', '.hg/', '.svn/'],
+                 file_indexers: List[IndexerType] =
+                 [FileIndexers.XXHASH64()],
+                 dir_indexers: List[IndexerType] = []) -> DirSnapshotType:
+    """
+    Return a snapshot dict of the passed dir path.
+
+    Args:
+        targetDir (str): Path of the target directory.
+        excludes (list): List of gitignore like patters to exclude.
+        file_indexers (list): list of name / function Tubles of indexing 
+            operations to apply to the files in the folder.
+            Eg: {"getmtime":os.path.getmtime, "sha256":filehash}
+        dir_indexers (list): name / function Tuples of indexing 
+            operations to apply to the subdirectories in the folder.
+    """
+    dir = Dir(targetDir, excludes=excludes)
+    dir.populate(force_refresh=True)
+    state = {}
+    state['root'] = {dir.path: compute_subdir(dir, ".", dir_indexers)}
+    state['subdirs'] = index_files(dir, dir_indexers)
+    state['files'] = index_subdirs(dir, file_indexers)
+    dir.depopulate()
+    return state
+
+
+def snapshot_to_json(snapshot: dict) -> str:
+    """
+    Return the json rappresentation of the passed snapshot
+
+    Args:
+        snapshot (dict): snapshot to serialize
+
+    Returns:
+        json_data (str): json serialized snapshot
+    """
+    return json.dumps(snapshot)
+
+
+def json_to_snapshot(json_data: str) -> dict:
+    """
+    Return the snapshot parsed from passed json data.
+    """
+    return json.loads(json_data)
+
+
+def json_file_to_snapshot(self, json_path: str) -> dict:
+    """
+    Return the state parsed from passed json file.
+    """
+    with open(json_path, 'r') as f:
+        json_data = f.read()
+    return json_to_snapshot(json_data)
+
+
+def compare_entry(new_data: IndexedDataType,
+                  old_data: IndexedDataType,
+                  cmp_key: str = None) -> int:
+    """
+    Check modified status of an entry using common data keys 
+    or cmp_key if set.
+
+    Args:
+        new_data (dict): new data organized in key / value
+        old_data (dict): old data organized in key / value
+        cmp_key (str): key of the value to use for the comparison,
+            if None, all the common keys will be used instead.
+
+    Returns:
+        (int) with the following values:
+             1: modified
+             0: not modified
+            -1: unknown 
+    """
+    if cmp_key:
+        if (cmp_key in new_data
+                and cmp_key in old_data):
+            if new_data[cmp_key] != old_data[cmp_key]:
+                # modified
+                return 1
+            else:
+                # unknown
+                return -1
+    else:
+        methods = old_data.keys() & new_data.keys()
+        if len(methods) == 0:
+            # unknown
+            return -1
+        else:
+            for key in methods:
+                if new_data[key] != old_data[key]:
+                    # modified
+                    return 1
+    # not modified
+    return 0
+
+
+def compare_dir_snapshot(dir_snapshot_new: DirSnapshotType,
+                         dir_snapshot_old: DirSnapshotType,
+                         cmp_key: str = None) -> dict:
+    """ 
+    Compare `dir_snapshot_new' and `dir_snapshot_old' and return the diff.
+
+    Args:
+        dir_snapshot_new (dict): a DirSnapshot state
+        dir_snapshot_old (dict): a DirSnapshot state
+        cmp_key (str): name of the file index data 
+            to use for the comparison. If missing all common 
+            metadata will be used. If no common metadata is 
+            found modified will be empty.
+
+    Returns: 
+        dict with the following keys:
+
+            - deleted files `deleted`
+            - created files `created`
+            - modified files `modified`
+            - unknown modified state `modified_unknown`
+            - deleted directories `deleted_dirs`
+
+    """
+    old_files = dir_snapshot_old['files'].keys()
+    new_files = dir_snapshot_new['files'].keys()
+    old_dirs = dir_snapshot_old['subdirs'].keys()
+    new_dirs = dir_snapshot_new['subdirs'].keys()
+
+    data = {}
+    data['deleted'] = list(old_files - new_files)
+    data['created'] = list(new_files - old_files)
+    data['modified'] = []
+    data['modified_unknown'] = []
+    data['deleted_dirs'] = list(old_dirs - new_dirs)
+
+    for f in old_files & new_files:
+        cmp_res = compare_entry(dir_snapshot_new['files'][f],
+                                dir_snapshot_old['files'][f],
+                                cmp_key)
+        if cmp_res == 1:
+            data['modified'].append(f)
+        if cmp_res == 0:
+            pass
+        if cmp_res == -1:
+            data['modified_unknown'].append(f)
+    return data
