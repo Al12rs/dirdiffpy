@@ -19,17 +19,18 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
 import subprocess
+from typing import List
 
 class SevenZip(object):
+     
+    exe_path = './7z'
     
-    cls.exe_path = ''
-
     @classmethod
-    def init(cls, exe_path):
+    def init(cls, exe_path:str):
         cls.exe_path = exe_path
 
     @classmethod
-    def create_archive(cls, archive_path, dir_path):
+    def create_archive(cls, archive_path:str, dir_path:str) -> None:
         """
         Creates a new archive from dir_path files named archive_path
         """
@@ -39,17 +40,19 @@ class SevenZip(object):
         # if the management of stdout and stderr is needed, see subprocess.Popen()
     
     @classmethod
-    def extract_archive(cls, archive_path, output_folder, file_list=[]):
+    def extract_archive(cls, archive_path:str, 
+                        output_folder:str, 
+                        file_list:List[str]=[]) -> None:
         """
         Extracts files from the specified archivied to the folder indicated.
         """
         # option 'x' extract files with paths, -o{dir_path} specify output folder
         cmd = [cls.exe_path, 'x', archive_path, '-o{}'.format(output_folder)]
-        # TO-DO: extract only files from a list. see include (-i{})
+        # TODO: extract only files from a list. see include (-i{})
         subprocess.call(cmd)
 
     @classmethod
-    def list_archive_contents(cls, archive_path, recurse=True):
+    def list_archive_contents(cls, archive_path:str, recurse=True) -> List[str]:
         """
         List archive contents.
 
@@ -65,7 +68,7 @@ class SevenZip(object):
         return archive_contents
 
     @classmethod
-    def calculate_hash(cls, file_path, method="CRC32"):
+    def calculate_hash(cls, file_path:str, method="CRC32") -> List[str]:
         """
         Calculate hash of specified file.
         """
